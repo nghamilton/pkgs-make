@@ -1,10 +1,11 @@
+#Adapted from Sukant Hajra's awesome work at https://github.com/shajra/example-nix
 let
 
     default =
         {
             bootPkgs = import <nixpkgs> {};
             nixpkgsArgs = {};
-            overlay = import ./overrides/nixpkgs;
+            overlay = import ../overrides/nixpkgs;
             srcFilter = p: t:
                 baseNameOf p != "result" && baseNameOf p != ".git";
             haskellArgs = {};
@@ -24,13 +25,11 @@ in
 generator:
 
 let
-    pinnedVersion = bootPkgs.lib.importJSON ../nixpkgs-version.json;
-
     nixpkgsPath =
         bootPkgs.fetchFromGitHub {
             owner = "NixOS";
             repo = "nixpkgs";
-            inherit (pinnedVersion) rev sha256;
+            inherit rev sha256;
         };
 
     origNixpkgs = import nixpkgsPath {};
