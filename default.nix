@@ -5,7 +5,7 @@ let
         {
             bootPkgs = import <nixpkgs> {};
             nixpkgsArgs = {};
-            overlay = import ../overrides/nixpkgs;
+            overlay = import ./overrides/nixpkgs;
             srcFilter = p: t:
                 baseNameOf p != "result" && baseNameOf p != ".git";
             haskellArgs = {};
