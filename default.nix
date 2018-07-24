@@ -1,10 +1,19 @@
 #Adapted from Sukant Hajra's awesome work at https://github.com/shajra/example-nix
 let
+    reflexVersion = bootPkgs.lib.importJSON ./reflex-platform-version.json;
+    reflexPath = bootPkgs.fetchFromGitHub {
+      owner = "reflex-frp";
+      repo = "reflex-platform";
+      inherit (reflexVersion) rev sha256;
+    };
+
+    reflexPkgs = import reflexPath {};
+    reflexNixPkgs = reflexPkgs.nixpkgs.pkgs;
 
     default =
         {
             bootPkgs = import <nixpkgs> {};
-            nixpkgsArgs = {};
+            nixpkgsArgs = reflexNixPkgs;
             overlay = import ./overrides/nixpkgs;
             srcFilter = p: t:
                 baseNameOf p != "result" && baseNameOf p != ".git";
