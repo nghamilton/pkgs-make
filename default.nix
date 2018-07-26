@@ -1,19 +1,9 @@
-#Adapted from Sukant Hajra's awesome work at https://github.com/shajra/example-nix
+#Adapted from Sukant Hajra's awesome work: https://github.com/shajra/example-nix
 let
-    reflexVersion = bootPkgs.lib.importJSON ./reflex-platform-version.json;
-    reflexPath = bootPkgs.fetchFromGitHub {
-      owner = "reflex-frp";
-      repo = "reflex-platform";
-      inherit (reflexVersion) rev sha256;
-    };
-
-    reflexPkgs = import reflexPath {};
-    reflexNixPkgs = reflexPkgs.nixpkgs.pkgs;
-
     default =
         {
-            bootPkgs = import <nixpkgs> {};
-            nixpkgsArgs = reflexNixPkgs;
+            nixpkgs = import <nixpkgs> {};
+            nixpkgsArgs = {};
             overlay = import ./overrides/nixpkgs;
             srcFilter = p: t:
                 baseNameOf p != "result" && baseNameOf p != ".git";
@@ -22,9 +12,7 @@ let
 
 in
 
-{ rev
-, sha256
-, bootPkgs ? default.bootPkgs
+{ nixpkgs ? default.nixpkgs
 , nixpkgsArgs ? default.nixpkgsArgs
 , srcFilter ? default.srcFilter
 , nixpkgsOverlay ? default.overlay
@@ -34,14 +22,6 @@ in
 generator:
 
 let
-    nixpkgsPath =
-        bootPkgs.fetchFromGitHub {
-            owner = "NixOS";
-            repo = "nixpkgs";
-            inherit rev sha256;
-        };
-
-    origNixpkgs = import nixpkgsPath {};
 
     morePkgs = self: super:
         let
@@ -66,12 +46,13 @@ let
 
     overlays = [ nixpkgsOverlay morePkgs ];
 
-    nixpkgs =
-        import origNixpkgs.path
+    # reimport supplied nixpkgs using the given overlays and args
+    modifiedPkgs =
+        import nixpkgs.path
             (nixpkgsArgs // { inherit overlays; });
 
     callPackage = p:
-        let pkg = (nixpkgs.callPackage (import p) {});
+        let pkg = (modifiedPkgs.callPackage (import p) {});
         in
         if pkg ? overrideAttrs
         then pkg.overrideAttrs (attrs:
@@ -81,10 +62,10 @@ let
         else pkg;
 
     generatorArgs = {
-        lib = import ./lib nixpkgs;
+        lib = import ./lib modifiedPkgs;
         call = {
             package = callPackage;
-            haskell = nixpkgs.pkgsMake.args.call.haskell;
+            haskell = modifiedPkgs.pkgsMake.args.call.haskell;
         };
     };
 
@@ -92,4 +73,4 @@ let
 
 in
 
-pkgs // { inherit nixpkgs; env = nixpkgs.pkgsMake.env; }
+pkgs // { inherit modifiedPkgs; env = modifiedPkgs.pkgsMake.env; }
